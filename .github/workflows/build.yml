@@ -43,8 +43,8 @@ jobs:
 
       - name: Verify output
         run: |
-          ls -la dist/
-          ls -la dist/*.exe 2>$null || echo "No exe found in dist/"
+          Get-ChildItem dist/ | Format-Table Name, Length
+          if (Test-Path dist/*.exe) { Write-Host "EXE found!" } else { Write-Host "No EXE found"; exit 1 }
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
