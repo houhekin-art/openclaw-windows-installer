@@ -6,8 +6,6 @@ permissions:
 on:
   push:
     branches: [main]
-  release:
-    types: [published]
   workflow_dispatch:
 
 jobs:
@@ -27,11 +25,6 @@ jobs:
         run: |
           python -m pip install --break-system-packages pyinstaller
 
-      - name: Show Python and pip versions
-        run: |
-          python --version
-          pip --version
-
       - name: Check tkinter availability
         run: |
           python -c "import tkinter; print('tkinter OK:', tkinter.TkVersion)"
@@ -46,7 +39,7 @@ jobs:
       - name: Verify output
         run: |
           Get-ChildItem dist/ | Format-Table Name, Length
-          if (Test-Path dist/*.exe) { Write-Host "EXE found!" } else { Write-Host "No EXE found"; exit 1 }
+          if (Test-Path dist/*.exe) { Write-Host "EXE found OK" } else { Write-Host "No EXE found"; exit 1 }
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -55,13 +48,12 @@ jobs:
           path: dist/OpenClaw-Setup.exe
           retention-days: 30
 
-      - name: Upload to GitHub Release
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: dist/OpenClaw-Setup.exe
           draft: false
           generate_release_notes: true
-          tag: v1.0.${{ github.run_number }}
+          tag_name: v1.0.${{ github.run_number }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
