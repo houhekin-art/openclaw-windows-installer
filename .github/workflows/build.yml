@@ -22,23 +22,29 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install pyinstaller pillow
+          pip install --upgrade pip
+          pip install pyinstaller
 
-      - name: Download icon
+      - name: Show Python and pip versions
         run: |
-          python -c "
-          import base64, struct, os
-          # Use embedded icon (auto-generated at build time if missing)
-          print('Using embedded icon')
-          "
+          python --version
+          pip --version
+
+      - name: Check tkinter availability
+        run: |
+          python -c "import tkinter; print('tkinter OK:', tkinter.TkVersion)"
 
       - name: Build with PyInstaller
         run: |
-          pyinstaller --onefile --windowed ^
-            --name "OpenClaw-Setup" ^
-            --add-data "README.md;." ^
-            --noconfirm ^
+          pyinstaller --onefile --windowed `
+            --name "OpenClaw-Setup" `
+            --noconfirm `
             openclaw_setup.py
+
+      - name: Verify output
+        run: |
+          ls -la dist/
+          ls -la dist/*.exe 2>$null || echo "No exe found in dist/"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -47,21 +53,25 @@ jobs:
           path: dist/OpenClaw-Setup.exe
           retention-days: 30
 
-      - name: Create Release
+      - name: Create Release Tag
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           $tag = "v1.0.$(git rev-list --count HEAD)"
-          if (!(git tag | Select-String $tag)) {
+          $existing = git tag --list $tag
+          if (-not $existing) {
             git tag $tag
             git push origin $tag
+            echo "Created and pushed tag: $tag"
+          } else {
+            echo "Tag $tag already exists"
           }
 
-      - name: Upload to Release
+      - name: Upload to GitHub Release
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: dist/OpenClaw-Setup.exe
-          name: OpenClaw 安装程序 v${{ github.run_number }}
           draft: false
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
