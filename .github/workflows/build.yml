@@ -1,5 +1,8 @@
 name: Build .exe
 
+permissions:
+  contents: write
+
 on:
   push:
     branches: [main]
@@ -22,8 +25,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install --upgrade pip
-          pip install pyinstaller
+          python -m pip install --break-system-packages pyinstaller
 
       - name: Show Python and pip versions
         run: |
@@ -53,19 +55,6 @@ jobs:
           path: dist/OpenClaw-Setup.exe
           retention-days: 30
 
-      - name: Create Release Tag
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: |
-          $tag = "v1.0.$(git rev-list --count HEAD)"
-          $existing = git tag --list $tag
-          if (-not $existing) {
-            git tag $tag
-            git push origin $tag
-            echo "Created and pushed tag: $tag"
-          } else {
-            echo "Tag $tag already exists"
-          }
-
       - name: Upload to GitHub Release
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
@@ -73,5 +62,6 @@ jobs:
           files: dist/OpenClaw-Setup.exe
           draft: false
           generate_release_notes: true
+          tag: v1.0.${{ github.run_number }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
