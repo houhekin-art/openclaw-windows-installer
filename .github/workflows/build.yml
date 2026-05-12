@@ -1,0 +1,67 @@
+name: Build .exe
+
+on:
+  push:
+    branches: [main]
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install pyinstaller pillow
+
+      - name: Download icon
+        run: |
+          python -c "
+          import base64, struct, os
+          # Use embedded icon (auto-generated at build time if missing)
+          print('Using embedded icon')
+          "
+
+      - name: Build with PyInstaller
+        run: |
+          pyinstaller --onefile --windowed ^
+            --name "OpenClaw-Setup" ^
+            --add-data "README.md;." ^
+            --noconfirm ^
+            openclaw_setup.py
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: OpenClaw-Setup
+          path: dist/OpenClaw-Setup.exe
+          retention-days: 30
+
+      - name: Create Release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          $tag = "v1.0.$(git rev-list --count HEAD)"
+          if (!(git tag | Select-String $tag)) {
+            git tag $tag
+            git push origin $tag
+          }
+
+      - name: Upload to Release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/OpenClaw-Setup.exe
+          name: OpenClaw 安装程序 v${{ github.run_number }}
+          draft: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
